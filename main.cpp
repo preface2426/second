@@ -1,37 +1,27 @@
-#include <QApplication>
+#include <QCoreApplication>
+#include <QTcpServer>
 #include <QFile>
-#include <QDebug>
-#include "adminwindow.h"
-
-static void loadAppQss(QApplication &a)
-{
-    // 优先从资源加载（如果你有 qrc）
-    QFile qss1(":/style.qss");
-    if (qss1.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        a.setStyleSheet(qss1.readAll());
-        qss1.close();
-        qDebug() << "✅ QSS loaded from :/style.qss";
-        return;
-    }
-
-    // 否则从工作目录加载（把 style.qss 放到 exe 同目录即可）
-    QFile qss2("style.qss");
-    if (qss2.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        a.setStyleSheet(qss2.readAll());
-        qss2.close();
-        qDebug() << "✅ QSS loaded from ./style.qss";
-        return;
-    }
-
-    qDebug() << "❌ Failed to load QSS";
-}
+#include <QTextStream>
+#include <QDateTime>
 
 int main(int argc, char *argv[])
 {
-    QApplication a(argc, argv);
-    loadAppQss(a);
+    QCoreApplication a(argc, argv);
 
-    AdminWindow w;
-    w.show();
+    // 打开日志文件（会生成在项目编译目录下）
+    QFile logFile("server_log.txt");
+    logFile.open(QIODevice::WriteOnly | QIODevice::Append);
+    QTextStream log(&logFile);
+    log << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss") << " ";
+
+    QTcpServer server;
+    if (server.listen(QHostAddress::Any, 12345)) {
+        log << "✅ 极简服务端启动成功！监听端口 12345\n";
+    } else {
+        log << "❌ 服务端启动失败：" << server.errorString() << "\n";
+        return -1;
+    }
+    logFile.close();
+
     return a.exec();
 }
