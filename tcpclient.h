@@ -12,7 +12,7 @@ public:
     explicit TcpClient(QObject *parent = nullptr);
     bool connectToServer(const QString &host = "127.0.0.1", quint16 port = 12345);//121.199.24.155
     void close();
-    QJsonObject sendRequest(const QJsonObject &req, int timeoutMs = 15000);  // 同步阻塞
+    QJsonObject sendRequest(const QJsonObject &req, int timeoutMs = 15000);  // 同步阻塞，方便 GUI 直接拿结果
 signals:
     void error(const QString &msg);
 private:

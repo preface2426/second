@@ -1,10 +1,8 @@
 #include "tcpclient.h"
+#include <QJsonDocument>
 #include <QElapsedTimer>
 
-TcpClient::TcpClient(QObject *parent)
-    : QObject(parent), m_socket(new QTcpSocket(this))
-{
-}
+TcpClient::TcpClient(QObject *parent) : QObject(parent), m_socket(new QTcpSocket(this)) { }
 
 bool TcpClient::connectToServer(const QString &host, quint16 port)
 {
@@ -19,40 +17,25 @@ void TcpClient::close()
 
 QJsonObject TcpClient::sendRequest(const QJsonObject &req, int timeoutMs)
 {
-    if (m_socket->state() != QAbstractSocket::ConnectedState) {
-        emit error("未连接服务器");
-        return {};
-    }
+    QJsonDocument doc(req);
+    QByteArray data = doc.toJson(QJsonDocument::Compact) + "\n";
+    m_socket->write(data);
+    m_socket->flush();
 
-    QByteArray payload = QJsonDocument(req).toJson(QJsonDocument::Compact) + "\n";
-    if (m_socket->write(payload) < 0) {
-        emit error("写入失败");
-        return {};
-    }
-    if (!m_socket->waitForBytesWritten(3000)) {
-        emit error("写入超时");
-        return {};
-    }
+    QElapsedTimer t;
+    t.start();
 
     QByteArray buf;
-    QElapsedTimer timer;
-    timer.start();
-
-    while (timer.elapsed() < timeoutMs) {
-        if (!m_socket->waitForReadyRead(200)) {
-            continue;
-        }
+    while (t.elapsed() < timeoutMs) {
+        if (!m_socket->waitForReadyRead(3000)) continue;
         buf += m_socket->readAll();
 
         int idx = buf.indexOf('\n');
         if (idx >= 0) {
             QByteArray line = buf.left(idx).trimmed();
-            QJsonDocument doc = QJsonDocument::fromJson(line);
-            if (!doc.isObject()) {
-                emit error("响应格式错误");
-                return {};
-            }
-            return doc.object();
+            // buf.remove(0, idx+1); // 这里一般一问一答，留着也没事
+            auto obj = QJsonDocument::fromJson(line).object();
+            return obj;
         }
     }
 

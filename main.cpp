@@ -1,27 +1,22 @@
-#include <QCoreApplication>
-#include <QTcpServer>
+#include <QApplication>
 #include <QFile>
-#include <QTextStream>
-#include <QDateTime>
+#include <QDebug>
+#include "mainwindow.h"
 
 int main(int argc, char *argv[])
 {
-    QCoreApplication a(argc, argv);
+    QApplication a(argc, argv);
 
-    // 打开日志文件（会生成在项目编译目录下）
-    QFile logFile("server_log.txt");
-    logFile.open(QIODevice::WriteOnly | QIODevice::Append);
-    QTextStream log(&logFile);
-    log << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss") << " ";
-
-    QTcpServer server;
-    if (server.listen(QHostAddress::Any, 12345)) {
-        log << "✅ 极简服务端启动成功！监听端口 12345\n";
+    QFile qssFile(":/style.qss");
+    if (qssFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        a.setStyleSheet(qssFile.readAll());
+        qssFile.close();
+        qDebug() << "✅ QSS loaded: :/style.qss";
     } else {
-        log << "❌ 服务端启动失败：" << server.errorString() << "\n";
-        return -1;
+        qDebug() << "❌ Failed to load QSS: :/style.qss";
     }
-    logFile.close();
 
+    MainWindow w;
+    w.show();
     return a.exec();
 }
